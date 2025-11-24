@@ -6,15 +6,27 @@ import time
 import random
 from moviepy.editor import VideoFileClip, AudioFileClip
 from instagrapi import Client
+import json
 
 # ==================== Config ====================
 INSTA_USERNAME = os.getenv("INSTA_USERNAME")
 INSTA_PASSWORD = os.getenv("INSTA_PASSWORD")
 BACKGROUND_VIDEO = "tech_background.mp4"
 
+# ==================== Session File ====================
+SESSION_FILE = "session.json"
+client = Client()
+
+if os.path.exists(SESSION_FILE):
+    client.load_settings(SESSION_FILE)
+else:
+    client.login(INSTA_USERNAME, INSTA_PASSWORD)
+    client.dump_settings(SESSION_FILE)
+
 # ==================== Get Trend ====================
 def get_trend():
-    return random.choice(["هوش مصنوعی", "AI", "گجت", "تکنولوژی", "نوآوری"])
+    trends = ["هوش مصنوعی", "AI", "گجت", "تکنولوژی", "نوآوری"]
+    return random.choice(trends)
 
 trend = get_trend()
 
@@ -31,7 +43,7 @@ caption = random.choice(captions)
 
 # ==================== Create Voice ====================
 ts = datetime.now().strftime("%Y-%m-%d_%H-%M")
-audio_file = f"audio_{ts}.mp3"  # gtts mp3 می‌سازه
+audio_file = f"audio_{ts}.mp3"
 
 tts = gTTS(text=caption, lang='fa', slow=False)
 tts.save(audio_file)
@@ -42,12 +54,13 @@ audio = AudioFileClip(audio_file).set_duration(15)
 final = video.set_audio(audio)
 final.write_videofile(f"reel_{ts}.mp4", fps=24, codec="libx264", audio_codec="aac")
 
-# ==================== Upload to Instagram ====================
-client = Client()
-client.login(INSTA_USERNAME, INSTA_PASSWORD)
-client.clip_upload(f"reel_{ts}.mp4", caption=caption)
-print(f"Reel uploaded! {ts}")
+# ==================== Upload ====================
+try:
+    client.clip_upload(f"reel_{ts}.mp4", caption=caption)
+    print(f"Reel uploaded! {ts}")
+except Exception as e:
+    print(f"Upload error: {e}")
 
-# ==================== Schedule (Every 4 hours) ====================
+# ==================== Schedule ====================
 while True:
     time.sleep(4 * 60 * 60)  # 4 hours
