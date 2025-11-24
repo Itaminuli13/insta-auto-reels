@@ -1,6 +1,6 @@
 # main.py
 import os
-import pyttsx3
+from gtts import gTTS
 from datetime import datetime
 import time
 import random
@@ -31,16 +31,10 @@ caption = random.choice(captions)
 
 # ==================== Create Voice ====================
 ts = datetime.now().strftime("%Y-%m-%d_%H-%M")
-audio_file = f"audio_{ts}.wav"
+audio_file = f"audio_{ts}.mp3"  # gtts mp3 می‌سازه
 
-engine = pyttsx3.init()
-engine.setProperty('rate', 140)
-for v in engine.getProperty('voices'):
-    if 'persian' in v.name.lower():
-        engine.setProperty('voice', v.id)
-        break
-engine.save_to_file(caption, audio_file)
-engine.runAndWait()
+tts = gTTS(text=caption, lang='fa', slow=False)
+tts.save(audio_file)
 
 # ==================== Create Video ====================
 video = VideoFileClip(BACKGROUND_VIDEO).subclip(0, 15)
