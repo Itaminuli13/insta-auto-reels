@@ -1,43 +1,31 @@
 # main.py
-import os
 from gtts import gTTS
 from datetime import datetime
 import time
 import random
 from moviepy.editor import VideoFileClip, AudioFileClip
 from instagrapi import Client
+import os
 
-# ==================== Config ====================
-INSTA_USERNAME = os.getenv("INSTA_USERNAME")
-INSTA_PASSWORD = os.getenv("INSTA_PASSWORD")
-BACKGROUND_VIDEO = "tech_background.mp4"
+# ==================== Login with Session Only ====================
+cl = Client()
+cl.delay_range = [1, 5]  # ضد بن
 
-# ==================== Login with Retry ====================
-def login_instagram():
-    client = Client()
-    try:
-        if os.path.exists("session.json"):
-            client.load_settings("session.json")
-            print("Session loaded")
-        else:
-            client.login(INSTA_USERNAME, INSTA_PASSWORD)
-            client.dump_settings("session.json")
-            print("Login successful")
-        return client
-    except Exception as e:
-        print(f"Login error: {e}")
-        return None
+if not os.path.exists("session.json"):
+    print("ERROR: session.json not found! Upload it to GitHub.")
+    exit()
 
-client = login_instagram()
-if not client:
-    print("Cannot login. Check username/password.")
+cl.load_settings("session.json")
+try:
+    cl.get_timeline_feed()  # تست اتصال بدون پسورد
+    print("Session loaded successfully! Logged in without password")
+except Exception as e:
+    print("Session expired or invalid:", e)
+    print("Delete session.json and login again locally.")
     exit()
 
 # ==================== Get Trend ====================
-def get_trend():
-    return random.choice(["هوش مصنوعی", "AI", "گجت", "تکنولوژی", "نوآوری"])
-
-trend = get_trend()
+trend = random.choice(["هوش مصنوعی", "AI", "گجت", "تکنولوژی", "نوآوری"])
 
 # ==================== Generate Caption ====================
 captions = [
@@ -51,26 +39,29 @@ captions = [
 caption = random.choice(captions)
 print(f"Caption: {caption}")
 
-# ==================== Create Voice ====================
+# ==================== Create Voice + Video ====================
 ts = datetime.now().strftime("%Y-%m-%d_%H-%M")
 audio_file = f"audio_{ts}.mp3"
+video_output = f"reel_{ts}.mp4"
 
+# TTS
 tts = gTTS(text=caption, lang='fa', slow=False)
 tts.save(audio_file)
 
-# ==================== Create Video ====================
-video = VideoFileClip(BACKGROUND_VIDEO).subclip(0, 15)
+# Video
+background = VideoFileClip("tech_background.mp4").subclip(0, 15)
 audio = AudioFileClip(audio_file).set_duration(15)
-final = video.set_audio(audio)
-final.write_videofile(f"reel_{ts}.mp4", fps=24, codec="libx264", audio_codec="aac")
+final = background.set_audio(audio)
+final.write_videofile(video_output, fps=24, codec="libx264", audio_codec="aac")
 
-# ==================== Upload ====================
+# ==================== Upload to Instagram ====================
 try:
-    client.clip_upload(f"reel_{ts}.mp4", caption=caption)
-    print(f"Reel uploaded successfully! {ts}")
+    cl.clip_upload(video_output, caption=caption)
+    print(f"REEL UPLOADED SUCCESSFULLY! {ts} 🚀")
 except Exception as e:
-    print(f"Upload error: {e}")
+    print("Upload failed:", e)
 
-# ==================== Schedule ====================
+# ==================== Schedule (every 4 hours) ====================
+print("Bot is running... Next reel in 4 hours.")
 while True:
-    time.sleep(4 * 60 * 60)  # 4 hours
+    time.sleep(4 * 60 * 60)  # ۴ ساعت صبر کن
