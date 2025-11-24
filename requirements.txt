@@ -1,5 +1,3 @@
-pyttsx3
+gtts
 moviepy
 instagrapi
-transformers
-torch
