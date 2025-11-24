@@ -6,27 +6,36 @@ import time
 import random
 from moviepy.editor import VideoFileClip, AudioFileClip
 from instagrapi import Client
-import json
 
 # ==================== Config ====================
 INSTA_USERNAME = os.getenv("INSTA_USERNAME")
 INSTA_PASSWORD = os.getenv("INSTA_PASSWORD")
 BACKGROUND_VIDEO = "tech_background.mp4"
 
-# ==================== Session File ====================
-SESSION_FILE = "session.json"
-client = Client()
+# ==================== Login with Retry ====================
+def login_instagram():
+    client = Client()
+    try:
+        if os.path.exists("session.json"):
+            client.load_settings("session.json")
+            print("Session loaded")
+        else:
+            client.login(INSTA_USERNAME, INSTA_PASSWORD)
+            client.dump_settings("session.json")
+            print("Login successful")
+        return client
+    except Exception as e:
+        print(f"Login error: {e}")
+        return None
 
-if os.path.exists(SESSION_FILE):
-    client.load_settings(SESSION_FILE)
-else:
-    client.login(INSTA_USERNAME, INSTA_PASSWORD)
-    client.dump_settings(SESSION_FILE)
+client = login_instagram()
+if not client:
+    print("Cannot login. Check username/password.")
+    exit()
 
 # ==================== Get Trend ====================
 def get_trend():
-    trends = ["هوش مصنوعی", "AI", "گجت", "تکنولوژی", "نوآوری"]
-    return random.choice(trends)
+    return random.choice(["هوش مصنوعی", "AI", "گجت", "تکنولوژی", "نوآوری"])
 
 trend = get_trend()
 
@@ -40,6 +49,7 @@ captions = [
 ]
 
 caption = random.choice(captions)
+print(f"Caption: {caption}")
 
 # ==================== Create Voice ====================
 ts = datetime.now().strftime("%Y-%m-%d_%H-%M")
@@ -57,7 +67,7 @@ final.write_videofile(f"reel_{ts}.mp4", fps=24, codec="libx264", audio_codec="aa
 # ==================== Upload ====================
 try:
     client.clip_upload(f"reel_{ts}.mp4", caption=caption)
-    print(f"Reel uploaded! {ts}")
+    print(f"Reel uploaded successfully! {ts}")
 except Exception as e:
     print(f"Upload error: {e}")
 
